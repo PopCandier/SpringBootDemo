@@ -375,3 +375,89 @@ Pop-0.0.1-SNAPSHOT.war中没有主清单属性
 
 就将tomcat容器引导加载我们地应用，明明都不要安装，这是为什么
 
+#### 嵌入式容器
+
+**对于tomcat的嵌入式总结**
+
+Tomcat7+Maven插件可以构建可执行jar或者war文件，实现独立的web应用程序，也支持servlet组件的自动装配
+
+如果是tomcat8更高版本的，需要借鉴更高的插件，P75
+
+**对于jetty容器**
+
+```xml
+<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+			<!--将tomcat容器排除掉-->
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-tomcat</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+
+		<!--引入Jetty-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jetty</artifactId>
+		</dependency>
+```
+
+对于undertow容器
+
+```xml
+<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-undertow</artifactId>
+		</dependency>
+```
+
+##### 嵌入式Reactive Web容器
+
+原文里，表示Reactive web是springboot2.0的新特性，但是想要激活他，需要增加
+
+spring-boot-starter-webflux依赖，并且不能与spring-boot-starter-web同时存在。
+
+如果同时存在，webflux将会被忽略。
+
+想要看到这个效果，指出 UndertowServletWebServer 是spring boot webserver 的实现类，这里强调servlet的原因是，undertow还有其他实现，那就是 reactive web 的实现 -undertowwebServer，想要这样除了只留下webflux依赖，还要把编译等级改成8
+
+```java
+/*
+	* Spring -boot2.0新引入了一周年Application Context的实现
+	* WebServerApplicationContext 他提供了获取 WebServer的接口方法 getWebServer()
+	* 只需要注入WebServerApplicationContext对象，并且在Springboot应用启动后，在输出到关联的WebServer实现类即可
+	* */
+	@Bean
+	public ApplicationRunner runner(WebServerApplicationContext context){
+		return args->{
+			System.out.println(context.getWebServer().getClass().getName());
+		};
+
+	}
+```
+
+不过，我们可以通过使用WebServerInitializedEvent，来监听更广的事件，原文中指出
+
+ServletWebServerInitializedEvent是WebServerInitializedEvent的子类
+
+```java
+@EventListener(WebServerInitializedEvent.class)
+	public void onWebServerReady(WebServerInitializedEvent event){
+		System.out.println("当前 WebServer 实现类为 ;"+ event.getWebServer().getClass().getName());
+	}
+```
+
+这样会稍微安全一点，因为避免了注入WebServerApplicationContext失败的原因
+
+最后，比较主流的三个容器，tomcat，jetty,undertow都支持reative web容器，这个具体如何配置在P95有详细讲解。
+
+|   容器   |          Maven依赖           |  WebServer实现类  |
+| :------: | :--------------------------: | :---------------: |
+|  Tomcat  |  spring-boot-starter-tomcat  |  TomcatWebServer  |
+|  Jetty   |  spring-boot-starter-jetty   |  JettyWebServer   |
+| Undertow | spring-boot-starter-undertow | UndertowWebServer |
+
