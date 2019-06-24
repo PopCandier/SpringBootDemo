@@ -1,19 +1,22 @@
 package thinkingSpringBoot.Pop;
 
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.context.WebServerApplicationContext;
-import org.springframework.boot.web.context.WebServerInitializedEvent;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.event.EventListener;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 
-@SpringBootApplication
+
+import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+
+
+//@SpringBootApplication(scanBasePackages = "think.in.spring.boot.app")
+//@Configuration
+//@ComponentScan
+@EnableAutoConfiguration
 public class PopApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(PopApplication.class, args);
 	}
+
 
 	/*
 	* Spring -boot2.0新引入了一周年Application Context的实现
@@ -28,9 +31,9 @@ public class PopApplication {
 //
 //	}
 
-	@EventListener(WebServerInitializedEvent.class)
-	public void onWebServerReady(WebServerInitializedEvent event){
-		System.out.println("当前 WebServer 实现类为 ;"+ event.getWebServer().getClass().getName());
-	}
+//	@EventListener(WebServerInitializedEvent.class)
+//	public void onWebServerReady(WebServerInitializedEvent event){
+//		System.out.println("当前 WebServer 实现类为 ;"+ event.getWebServer().getClass().getName());
+//	}
 
 }

@@ -461,3 +461,209 @@ ServletWebServerInitializedEvent是WebServerInitializedEvent的子类
 |  Jetty   |  spring-boot-starter-jetty   |  JettyWebServer   |
 | Undertow | spring-boot-starter-undertow | UndertowWebServer |
 
+#### 自动装配
+
+我们常见的自动装配类的方法
+
+* xml元素的`<context:component-scan>`
+* 注解@Import
+* 注解@Configuration
+
+前者需要，ClassPathXmlApplicationContext加载，后者需要AnnotationConfigApplicationContext注册。
+
+@import的使用
+
+```java
+public class Dog{}
+public class Cat{}
+@ComponentScan
+/*把用到的资源导入到当前容器中*/
+@Import({Dog.class, Cat.class})
+public class App {
+
+    public static void main(String[] args) throws Exception {
+
+        ConfigurableApplicationContext context = SpringApplication.run(App.class, args);
+        System.out.println(context.getBean(Dog.class));
+        System.out.println(context.getBean(Cat.class));
+        context.close();
+    }
+}
+```
+
+会有结果。
+
+当然你也可以导入一个配置类
+
+```java
+public class MyConfig {
+
+    @Bean
+    public Dog getDog(){
+        return new Dog();
+    }
+
+    @Bean
+    public Cat getCat(){
+        return new Cat();
+    }
+
+}
+//@SpringBootApplication
+@ComponentScan
+/*导入配置类就可以了*/
+@Import(MyConfig.class)
+public class App {
+
+    public static void main(String[] args) throws Exception {
+
+        ConfigurableApplicationContext context = SpringApplication.run(App.class, args);
+        System.out.println(context.getBean(Dog.class));
+        System.out.println(context.getBean(Cat.class));
+        context.close();
+    }
+}
+```
+
+很显然，运行WebFlux和嵌入式Web容器均已自动装配，那么是否可以认为当前引导类
+
+PopApplication充当了@Configuration类的角色呢，答案是肯定的。
+
+原文中指出，SpringBootApplication等价于三种标签
+
+@Configuration（标注为配置类）/@ComponentScan（激活@Component的扫描）/@EnableAutoConfiguartion（负责激活spring-boot自动装配功能）
+
+我们将SpringBootApplication替换成以上三种依旧可以执行。
+
+```java
+//@SpringBootApplication
+@Configuration
+@ComponentScan
+@EnableAutoConfiguration
+public class PopApplication {
+	//少一个都不行
+	public static void main(String[] args) {
+		SpringApplication.run(PopApplication.class, args);
+	}
+
+
+}
+```
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@ComponentScan(excludeFilters = {
+		@Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+		@Filter(type = FilterType.CUSTOM,
+				classes = AutoConfigurationExcludeFilter.class) })
+public @interface SpringBootApplication {
+```
+
+* 2.0的spring-boot中ComponetScan并非使用了默认值，而是添加了排除的TypeFilter实现。前者1.4开始支持，`为了查找BeanFactory中已经注册的TypeExcludeFilter Bean`，后者从1.5开始支持，用于排除同时标注了@Configuration和@EnableAutoConfiguration的类。
+* spring1.4开始，@SpringBootApplication 注解不再是@Configuration而是@SpringBootConfiguration，这种类似对象之间的继承关系，作者称之为“多层次@Component的‘’派生性”。
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Configuration
+public @interface SpringBootConfiguration {
+
+}
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Component
+public @interface Configuration {
+```
+
+三者关系
+
+* @Component
+  * @Configuration
+    * @SpringBootConfiguration
+
+原文中，我们也可以用@EnableAutoConfiguration来代替@SpringBootApplication
+
+那么两者有什么区别呢？
+
+后者比前者多一个CGLIB提升的过程，即，使用SpringBootApplication修饰过。也就是"继承"了Configuration的类，装载时，将会使用cglib，也就是用@Bean修饰的
+
+```java
+//@Configuration
+//    @EnableAutoConfiguration
+    @SpringBootApplication
+public class WebConfiguration {
+
+    @Bean
+    public RouterFunction<ServerResponse> helloWorld(){
+        return route(RequestPredicates.GET("/hello-world"),
+                request-> ServerResponse.ok().body(Mono.just("Hello,World"),String.class)
+        );
+    }
+
+    @Bean
+    public ApplicationRunner runner(BeanFactory beanFactory){
+        return args->{
+            System.out.println(" hello World Bean 的实现类是 "+beanFactory.getBean("helloWorld").getClass().getName());
+            System.out.println(" WebConfiguration Bean 实现类为 "+beanFactory.getBean(WebConfiguration.class).getClass().getName());
+        };
+    }
+		think.in.spring.boot.app.config.WebConfiguration
+		
+		*/
+
+}
+
+//@Configuration
+   @EnableAutoConfiguration
+//    @SpringBootApplication
+public class WebConfiguration {
+
+    @Bean
+    public RouterFunction<ServerResponse> helloWorld(){
+        return route(RequestPredicates.GET("/hello-world"),
+                request-> ServerResponse.ok().body(Mono.just("Hello,World"),String.class)
+        );
+    }
+
+    @Bean
+    public ApplicationRunner runner(BeanFactory beanFactory){
+        return args->{
+            System.out.println(" hello World Bean 的实现类是 "+beanFactory.getBean("helloWorld").getClass().getName());
+            System.out.println(" WebConfiguration Bean 实现类为 "+beanFactory.getBean(WebConfiguration.class).getClass().getName());
+        };
+think.
+in.spring.boot.app.config.WebConfigurationguration
+	
+	*/
+}
+```
+
+所以cglib提升是为了@Configuration修饰后的类准备的，而非@Bean
+
+##### 理解自动配置机制
+
+我们之前定义了WebConfiguration属于编码方式的导入编程，而非自动装配。相反，其它自动装配的Bean肯定由某种机制完成的，这种机制就是自动配置的机制。
+
+这里概括起来，就是spring-boot1.0添加了约定配置，可以自动导入@Configuration类的方式。这些注解需要标注到Configuration'上
+
+* @ConditionalOnClass 当且仅当目标类存在于ClassPath下才可以装配。
+* @ConditionOnMissingBean
+
+**创建自动配置类**
+
+在resource下面，新建META-INF/spring.factories
+
+```properties
+# 自动装配
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  think.in.spring.boot.app.autoconfigure.WebAutoConfiguration
+```
+

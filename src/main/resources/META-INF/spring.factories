@@ -1,0 +1,3 @@
+# ×Ô¶¯×°Åä
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  think.in.spring.boot.app.autoconfigure.WebAutoConfiguration
