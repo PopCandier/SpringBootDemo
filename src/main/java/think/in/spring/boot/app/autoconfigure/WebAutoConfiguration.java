@@ -1,5 +1,6 @@
 package think.in.spring.boot.app.autoconfigure;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Indexed;
@@ -9,6 +10,7 @@ import think.in.spring.boot.app.config.WebConfiguration;
  * @author Pop
  * @date 2019/6/24 23:45
  */
+@ConditionalOnWebApplication
 @Configuration
 @Indexed
 @Import(WebConfiguration.class)

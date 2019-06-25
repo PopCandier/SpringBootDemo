@@ -70,6 +70,13 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
+		<!--添加 Actuator依赖，主要用于监控应用
+		production-ready概念的体现
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<!--用于源码分析-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

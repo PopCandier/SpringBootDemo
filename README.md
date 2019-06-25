@@ -657,6 +657,10 @@ in.spring.boot.app.config.WebConfigurationguration
 * @ConditionalOnClass 当且仅当目标类存在于ClassPath下才可以装配。
 * @ConditionOnMissingBean
 
+当@Conditional中可以修饰一个class类，然后可以去查找这个类的所在实现
+
+[@Conditional详解文章](https://blog.csdn.net/xcy1193068639/article/details/81491071)
+
 **创建自动配置类**
 
 在resource下面，新建META-INF/spring.factories
@@ -667,3 +671,193 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   think.in.spring.boot.app.autoconfigure.WebAutoConfiguration
 ```
 
+#### 理解Production-Ready特性
+
+在之前，我们可以使用自动装配，并且也可以使用@Conditional注解，都可以让Bean无声无息的被实例化，让spring为我们接管，我们越来越不清楚里面的细节。
+
+所以我们需要一套运维的方案，了解Bean的组装情况，甚至是其他应用相关的信息，同时为了支持以配置方式调整应用行为，如Web服务端口，Spring-boot提供了Production-Ready特性
+
+metrics(指标)/health checks（健康检查）/externalized configuration（外部配置）均属于为生产准备的特性
+
+引出Spring Boot Actuator特性，他是“Production-Ready”的具体化
+
+他的作用
+
+* 使用场景：监视和管理投入生产的应用
+* 监管媒介：HTTP或JMX端点(Endpoints)
+* 端点类型：审计（Auditing）/健康 (Health )和指标收集（metrics gathering）
+* 基本特点：自动运用（automatically applied）
+
+添加依赖
+
+```xml
+<!--添加 Actuator依赖，主要用于监控应用
+		production-ready概念的体现
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+```
+
+常用的Endpoints
+
+* beans：显示当前Spring 应用上下文的Spring Bean完整列表，包含所有的ApplicationContext层次
+* conditions：显示当前应用所有配置类和自动装配类的条件评估结果，(包含匹配和未匹配结果)
+* env：暴露Spring ConfigurableEnvironment中的PropertySource属性
+* health: 显示应用的健康信息（默认添加）
+* info：显示任意的应用信息。（默认添加）
+
+如果我们想要暴露其它endpoint可以加入这样的参数
+
+这里用beans作为例子
+
+`mvn spring-boot:run -Dmanagement.endpoints.web.exposure.include=beans`
+
+接着，我们可以从控制台可以看到默认的/actuator将会被映射，然后我们在url地址输入
+
+`http://localhost:8080/actuator/beans`
+
+就可以得到目前所有的自动装配的Beans列表了
+
+```json
+{"contexts":{"application":{"beans":{"org.springframework.boot.autoconfigure.websocket.reactive.WebSocketReactiveAutoConfiguration":{"aliases":[],"scope":"singleton","type":"org.springframework.boot.autoconfigure.websocket.reactive.WebSocketReactiveAutoConfiguration$$EnhancerBySpringCGLIB$$fdd433b2","resource":null,"dependencies":[]},"org.springframework.boot.actuate.autoconfigure.health.HealthEndpointWebExtensionConfiguration$ReactiveWebHealthConfiguration":{"aliases":[],"scope":"singleton","type":"org.springframework.boot.actuate.autoconfigure.health.HealthEndpointWebExtensionConfiguration$ReactiveWebHealthConfiguration$$EnhancerBySpringCGLIB$$38c4c3b9","resource":null,"dependencies":["reactiveHealthIndicatorRegistry"]},"endpointCachingOperationInvokerAdvisor":{"aliases":[],"scope":"singleton","type":"org.springframework.boot.actuate.endpoint.invoker.cache.CachingOperationInvokerAdvisor","resource":"class path resource [org/springframework/boot/actuate/autoconfigure/endpoint/EndpointAutoConfiguration.class]","dependencies":["environment"]},"org.springframework.boot.actuate.autoconfigure.web.reactive.ReactiveManagementContextAutoConfiguration":{"aliases":....
+```
+
+同时，如果你还想暴露更多的endpoint，需要在自动装配的类上加上参数
+
+```java
+@ConditionalOnWebApplication//<----这里
+@Configuration
+@Indexed
+@Import(WebConfiguration.class)
+public class WebAutoConfiguration {
+    /*
+    * 由于注解编程简化了配置，但是解析是会有性能消耗的，所以 springframk5.0加入了@Inedexed
+    * 它将会为@Component和派生注解添加索引，减少运行时性能消耗。
+    * */
+}
+```
+
+同时，我们将启动的参数再变化一下
+
+`mvn spring-boot:run -Dmanagement.endpoints.web.exposure.include=beans,conditions,env`
+
+改变参数为
+
+`http://localhost:8080/actuator/conditions`
+
+可以得到当前系统的环境参数情况
+
+#####  理解外部化配置
+
+简单来说就是，我们可以通过新的语法来定义自己的配置，springboot中提供三种途径
+
+* Bean 的 @Value
+* Spring Environment 读取
+* @ConfigurationProperties绑定到结构化对象中
+
+原文中有比较详细的外部配置的加载顺序P130中
+
+```java
+@Component
+public class MyBean{
+	@Value("${name}")
+    private String name;
+}
+```
+
+这个值会从application.properties中读取，但是如果你在`命名行`给他命名了，那么他就是使用在命令行中的参数，因为外部化配置顺序 4是Commad line arguments，而优先于15.Applicationproperties packaged inside your jar(application.properties and YAML variants)
+
+PropertySource就是“外部配置化”API的描述方式。
+
+**总结**
+
+Spring-boot主要有五大特性
+
+* SpringApplication
+* 自动装配
+* 外部化配置
+* Spring Boot Actuator
+* 嵌入式web容器
+
+最后引出了微服务概念，spring-boot因为缺少构建微服务的能力，
+
+所以在此基础上研发了Spring-Cloud，可以帮助开发者快速构建通同的分布式系统
+
+核心特性如下
+
+* Distributed/versioned configuration（分布式配置）
+* Service registration and dicovery （服务注册和发现）
+* Routing （路由）
+* Service-to-service calls (服务调用)
+* Load balancing （负载均衡）
+* Circuit Breakers （熔断机制）
+* Distributed messaging （分布式消息）
+
+最后作者向读者推荐了两本关于Spring Cloud的书籍
+
+《Spring Cloud 微服务实战》作者：翟永超
+
+《Spring Cloud 与 Docker 微服务架构实战》作者：周立
+
+
+
+#### 走向自动装配
+
+##### 走向注解驱动编程(Annotation-Driven)
+
+* SpringFramework 1.x 不支持注解，只支持xml配置
+
+* SpringFramework 2.x 增加几个注解
+
+  * Bean相关的 @Required
+  * 数据相关的@Repository
+  * AOP的@Aspect
+
+* SpringFramework 2.5 是比较重大的更新，算是一个分水岭
+
+  * 依赖注入 @Autowired
+
+    * 另外，依赖注入也是可以注入某种类型的集合的
+
+    * ```java
+      @Component("nameRepositoryHolder")
+      public class NameRepositoryHolder{
+          @Autowired
+          private Collection<NameRepository> repositories;
+      }
+      ```
+
+    * 当然，无论你autowired注入单个spring bean还是集合都是可以的，但这只局限于某一个class类，例如上面就是`NameRepository`的集合，如果你还想在细粒度的控制筛选，那么就需要@Qualifier
+
+    * ```java
+      @Component("nameRepositoryHolder")
+      public class NameRepositoryHolder{
+          @Autowired
+          @Qualifier("chinesNameRepository")
+          private Collection<NameRepository> repositories;
+      }
+      ```
+
+      
+
+  * 依赖查找 @Qualifier
+
+  * 组件声明 @Component @Service
+
+  * SpringMVC Annotation @Controller @RequestMapping @ModeAttribute 等
+
+  * 支持 JSR-250 的 @Resource注入，包括PostConstruct和PreDestory
+
+    * 前者可替代 <bean init-method="...">或者 Spring InitializingBean接口回调
+    * 后者可代替<bean destroy-method="...">或者 DisposableBean
+
+  * 但是 2.x是个尴尬的版本，他提供了很多的核心的anontaion，但是，却还是无法直接注解驱动，我们还是需要xml配置来驱动spring容纳 PathClassXmlApplicationContext,就类似`<context:annotation-config>`和`<context:component-scan>`前者启动注册Annoation处理器，后者负责扫描相对于classpath下面的指定java根包(base package)，寻找spring模式注解标记的类class，将他们注册成spring bean
+
+  * 在1.x版本里，多个spring bean是需要排序的，一般的做法是实现ordered接口，从2.0开始通过在@Component class中标注@Order方式进行替代。
+
+* Spring Framework 3.x 注解黄金时代
+
+
+​    
