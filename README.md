@@ -859,5 +859,186 @@ Spring-boot主要有五大特性
 
 * Spring Framework 3.x 注解黄金时代
 
+  * 从3.X开始，spring开始着重的要替换xml配置。@Configuration就是其中一个
+
+  * ```java
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @Component
+    public @interface Configuration {
+    
+    	@AliasFor(annotation = Component.class)
+    	String value() default "";
+    
+    }
+    
+    ```
+
+  * 不过3.0的spring还是没找找到替换`<context:component-scan>`的注解，而是选择了过渡的方案@ImportResource和@Import
+
+  * @ImportResource允许导入遗留的XML文件，而@Import则允许导入一个或多个SpringBean
+
+  * ```java
+    @ImportResource(value = "classpath:/META-INF/spring/others.xml")
+    @Configuration
+    public class SpringContextConfiguration {
+    }
+    
+    ```
+
+  * 所以3.0引入了新的驱动AnnotationConfigApplicationContext
+
+  * ```java
+    @ImportResource(value = "classpath:/META-INF/spring/others.xml")
+    @Configuration
+    public class SpringContextConfiguration {
+    
+        @Lazy
+        @Primary//当多个想同类型的bean出现的时候，可以定义主要注入的为这个
+        @DependsOn("springContextConfiguration")//依赖springContextConfiguration
+        @Bean(name = "user") //Bean的名称为user
+        public User user(){
+            User user = new User();
+            user.setName("Pop");
+            return user;
+        }
+    
+    }
+    ```
+
+  * @Configuration把一个类作为一个IoC容器，它的某个方法头上如果注册了@Bean，就会作为这个Spring容器中的Bean。 
+    @Scope注解 作用域 
+    @Lazy(true) 表示延迟初始化 
+    @Service用于标注业务层组件、 
+    @Controller用于标注控制层组件（如struts中的action） 
+    @Repository用于标注数据访问组件，即DAO组件。 
+    @Component泛指组件，当组件不好归类的时候，我们可以使用这个注解进行标注。 
+    @Scope用于指定scope作用域的（用在类上） 
+    @PostConstruct用于指定初始化方法（用在方法上） 
+    @PreDestory用于指定销毁方法（用在方法上） 
+    @Resource 默认按名称装配，当找不到与名称匹配的bean才会按类型装配。 
+    @DependsOn：定义Bean初始化及销毁时的顺序 
+    @Primary：自动装配时当出现多个Bean候选者时，被注解为@Primary的Bean将作为首选者，否则将抛出异常 
+    @Autowired 默认按类型装配，如果我们想使用按名称装配，可以结合@Qualifier注解一起使用 
+    @Autowired @Qualifier(“personDaoBean”) 存在多个实例配合使用
+
+  * spring 3.1 开始引入了@ComponentScan去替换`<context:component-scan>`
 
 ​    
+
+springframework 3.1 抽象了一套统一配置属性的API，包括配属属性存储接口 Environment以及配置属性源抽象 PropertySource，这个两个核心Api奠定了SpringBoot外部化配置的基础，也是Spring Cloud分布式配置的基石。 
+
+但是需要掌握这种API，学习成本还是略大，因为你需要熟悉spring，并且对bean的生命周期了解。
+
+所以提供了@PropertySource简化实现
+
+* 缓存方面：API提供了 Cache 和缓存管理器 Cache Manager 配套注解 Caching 和 Cacheable 简化了数据缓存的开发
+* 异步支持方面，引入了异步操作注解@Async，周期异步执行注解@Scheduled以及异步Web请求处理 DeferredResult
+* 校验方面；Spring 引入了校验注解@Validated不但整合了JSR-303,而且还适配了Spring早期的Validator抽象
+
+
+
+Spring Framework 4.x 驱动完善的时代
+
+* 条件化注解@Conditional被引入
+
+详细总结请看P153表格
+
+#### Spring 注解编程模型
+
+主要讨论一下几点
+
+* 元注解 (Meta-Annotation)
+* Spring 模式注解 （Stereotype Annotations）
+* Spring 组合注解 （Composed Annoations）
+* Spring 注解属性别名和覆盖（Attribute Alizses and Overrides）
+
+##### 元注解 (Meta-Annotation)
+
+表示能够标记上的注解上的注解，例如java中的@Documented还有@Inherited
+
+spring中的@Component，他可以注解到@Service和@Repository上，所以他可以算是元注解
+
+##### Spring 模式注解 （Stereotype Annotations）
+
+作者解释道可以这样理解Spring 模式注解
+
+`Spring注解即@Component“派生”注解`
+
+例如我们熟知的Service 、Controller、Repository、RestContoller
+
+由于Java语法规范规定，Annotation不允许继承，没有类派生子类的能力，因此Spring framework采用元标注的方式实现注解之间的派生
+
+**自定义@Component“派生”注解**
+
+```java
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Component
+public @interface StringRepository {
+    //自定义一个我们自己的 Repository
+
+    /**
+     * 属性名名称必须与Component value 一致
+     * @return
+     */
+    String value() default "";
+}
+
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <context:component-scan base-package="think.in.spring.boot.app.repository"/>
+
+</beans>
+
+```
+
+并创建引导类
+
+```java
+public class DerivedComponentAnnotationBootStrap {
+    //自定义StringRepository的引导类
+    static {
+        /**
+         * 解决spring 2.5 不兼容 java 8 的问题
+         * 同时，请注意Java Seurity策略 ，必须具备 PropertyPermission
+         */
+        System.setProperty("java.version","1.7.0");
+    }
+
+    public static void main(String[] args) {
+
+        //构建驱动上下文
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext();
+        context.setConfigLocation("classpath:/META-INF/spring/context.xml");
+        //启动
+        context.refresh();
+
+        //获取实例
+        NameRepository nameRepository = (NameRepository) context.getBean("chineseNameRepository");
+        System.out.println(nameRepository.findAll());
+    }
+
+}
+
+```
+
+成功打印
+
+```c
+....
+22:11:43.132 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'org.springframework.context.annotation.internalCommonAnnotationProcessor'
+22:11:43.140 [main] DEBUG org.springframework.beans.factory.support.DefaultListableBeanFactory - Creating shared instance of singleton bean 'chineseNameRepository'
+[张三, 李四, 王五]
+```
+
