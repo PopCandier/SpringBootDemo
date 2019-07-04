@@ -1,3 +1,7 @@
 # ×Ô¶¯×°Åä
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  think.in.spring.boot.app.autoconfigure.WebAutoConfiguration
+  think.in.spring.boot.app.autoconfigure.WebAutoConfiguration,\
+  autoconfig.DemoService
+
+#org.springframework.boot.test.autoconfigure.core.AutoConfigureCache=\
+  # autoconfig.DemoService

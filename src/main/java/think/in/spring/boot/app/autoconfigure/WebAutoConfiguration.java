@@ -10,8 +10,8 @@ import think.in.spring.boot.app.config.WebConfiguration;
  * @author Pop
  * @date 2019/6/24 23:45
  */
-@ConditionalOnWebApplication
-@Configuration
+//@ConditionalOnWebApplication 是web容器才会装配
+//@Configuration
 @Indexed
 @Import(WebConfiguration.class)
 public class WebAutoConfiguration {

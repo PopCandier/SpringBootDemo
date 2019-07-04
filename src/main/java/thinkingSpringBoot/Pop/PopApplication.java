@@ -2,15 +2,16 @@ package thinkingSpringBoot.Pop;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
 
-//@SpringBootApplication(scanBasePackages = "think.in.spring.boot.app")
+@SpringBootApplication(scanBasePackages = "think.in.spring.boot.app")
 //@Configuration
 //@ComponentScan
-@EnableAutoConfiguration
+//@EnableAutoConfiguration
 public class PopApplication {
 
 	public static void main(String[] args) {
