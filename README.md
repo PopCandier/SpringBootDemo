@@ -1,6 +1,6 @@
 #### Spring Boot 编程思想
 
-[SpringBoot自动装配扩展]: https://github.com/PopCandier/SpringBootDemo/blob/master/src/main/java/autoconfig/Spring%20Boot%20autoconfig.md
+[SpringBoot自动装配扩展](https://github.com/PopCandier/SpringBootDemo/blob/master/src/main/java/autoconfig/Spring%20Boot%20autoconfig.md)
 
 #### 从创建一个Spring Boot项目开始。
 
