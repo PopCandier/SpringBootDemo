@@ -2,6 +2,8 @@
 
 [SpringBoot自动装配扩展](https://github.com/PopCandier/SpringBootDemo/blob/master/src/main/java/autoconfig/Spring%20Boot%20autoconfig.md)
 
+[注解编程驱动](https://github.com/PopCandier/SpringBootDemo/blob/master/src/main/java/enable/Chanpter-8%20Spring%20%E6%B3%A8%E8%A7%A3%E7%BC%96%E7%A8%8B%E9%A9%B1%E5%8A%A8.md)
+
 #### 从创建一个Spring Boot项目开始。
 
 start.spring.io 我们可以很轻松的构建一个spring-boot项目
