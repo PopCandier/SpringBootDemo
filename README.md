@@ -966,7 +966,7 @@ spring中的@Component，他可以注解到@Service和@Repository上，所以他
 
 `Spring注解即@Component“派生”注解`
 
-例如我们熟知的Service 、Controller、Repository、RestContoller
+ 
 
 由于Java语法规范规定，Annotation不允许继承，没有类派生子类的能力，因此Spring framework采用元标注的方式实现注解之间的派生
 
